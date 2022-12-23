@@ -6,4 +6,6 @@ User = get_user_model()
 
 class IsAdmin(BasePermission):
     def has_permission(self, request, view):
-        return request.user.is_admin
+        if request.user.is_authenticated:
+            return request.user.is_admin or request.user.is_superuser
+        return False

@@ -1,13 +1,14 @@
+from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
-from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
+from rest_framework import filters, permissions, status, viewsets
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework import permissions, status, viewsets
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from . import serializers
+from .pagination import UsersPagination
 from .permissions import IsAdmin
 
 User = get_user_model()
@@ -17,7 +18,18 @@ EMAIL = 'admin@mail.com'
 @api_view(['POST'])
 @permission_classes((permissions.AllowAny,))
 def get_confirmation_code(request):
-    serializer = serializers.ConfirmationCodeSerializer(data=request.data)   
+    if User.objects.filter(username=request.data.get('username'),
+                           email=request.data.get('email')).exists():
+        user = User.objects.get(username=request.data.get('username'),
+                                email=request.data.get('email'))
+        code = default_token_generator.make_token(user)
+        send_mail('Confirmation code',
+                  f'Confirmation code: {code}',
+                  EMAIL,
+                  [request.data.get('email')],
+                  fail_silently=False)
+        return Response(request.data, status=status.HTTP_200_OK)
+    serializer = serializers.ConfirmationCodeSerializer(data=request.data)
     if serializer.is_valid(raise_exception=True):
         if serializer.validated_data['username'] == 'me':
             return Response(serializer.errors,
@@ -57,6 +69,11 @@ class UsersViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = serializers.UserSerializer
     permission_classes = (IsAdmin,)
+    pagination_class = UsersPagination
+    filter_backends = (filters.SearchFilter,)
+    http_method_names = ['get', 'post', 'patch', 'delete']
+    search_fields = ('=username',)
+    lookup_field = 'username'
 
 
 @api_view(['GET', 'PATCH'])
@@ -66,14 +83,13 @@ def get_current_user(request):
         serializer = serializers.UserSerializer(request.user)
         return Response(serializer.data)
     obj = User.objects.get(id=request.user.id)
-    serializer = serializers.UserSerializer(obj, data=request.data)
-    if serializer.is_valid():
-        # if 'role' not in serializer.validated_data:
-        #     serializer.save()
-        #     return Response(serializer.data)
-        # if request.user.is_user:
-        #     serializer.validated_data.pop('role')
-        #     serializer.save()
-        #     return Response(serializer.data)
+    serializer = serializers.UserSerializer(obj,
+                                            data=request.data,
+                                            partial=True)
+    if serializer.is_valid(raise_exception=True):
+        if 'role' in serializer.validated_data:
+            serializer.validated_data.pop('role')
+            serializer.save()
+            return Response(serializer.data)
         serializer.save()
         return Response(serializer.data)

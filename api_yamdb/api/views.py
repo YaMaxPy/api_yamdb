@@ -1,4 +1,4 @@
-from django.contrib.auth import get_user_model
+# from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
@@ -7,23 +7,20 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from . import serializers
 from .pagination import UsersPagination
-from .permissions import IsAdmin
-
 from reviews.models import Category, Genre, Review, Title
-
 from .permissions import (
     IsAdminModeratorAuthorOrReadOnly,
-    IsAdminUserOrReadOnly
+    IsAdminUserOrReadOnly, IsAdmin
 )
 from .serializers import (
     CategorySerializer, CommentSerializer,
-    GenreSerializer, ReviewSerializer, TitleSerializer
+    GenreSerializer, ReviewSerializer,
+    TitleSerializer, ConfirmationCodeSerializer,
+    JwtTokenSerializer, UserSerializer, ReadOnlyTitleSerializer
 )
-
-
-User = get_user_model()
+from users.models import User
+# User = get_user_model()
 EMAIL = 'admin@mail.com'
 
 
@@ -41,7 +38,7 @@ def get_confirmation_code(request):
                   [request.data.get('email')],
                   fail_silently=False)
         return Response(request.data, status=status.HTTP_200_OK)
-    serializer = serializers.ConfirmationCodeSerializer(data=request.data)
+    serializer = ConfirmationCodeSerializer(data=request.data)
     if serializer.is_valid(raise_exception=True):
         if serializer.validated_data['username'] == 'me':
             return Response(serializer.errors,
@@ -62,7 +59,7 @@ def get_confirmation_code(request):
 @api_view(['POST'])
 @permission_classes((permissions.AllowAny,))
 def get_jwt_token(request):
-    serializer = serializers.JwtTokenSerializer(data=request.data)
+    serializer = JwtTokenSerializer(data=request.data)
     if serializer.is_valid(raise_exception=True):
         user = get_object_or_404(User,
                                  username=request.data.get('username'))
@@ -79,7 +76,7 @@ def get_jwt_token(request):
 
 class UsersViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
-    serializer_class = serializers.UserSerializer
+    serializer_class = UserSerializer
     permission_classes = (IsAdmin,)
     pagination_class = UsersPagination
     filter_backends = (filters.SearchFilter,)
@@ -92,12 +89,12 @@ class UsersViewSet(viewsets.ModelViewSet):
 @permission_classes((permissions.IsAuthenticated,))
 def get_current_user(request):
     if request.method == 'GET':
-        serializer = serializers.UserSerializer(request.user)
+        serializer = UserSerializer(request.user)
         return Response(serializer.data)
     obj = User.objects.get(id=request.user.id)
-    serializer = serializers.UserSerializer(obj,
-                                            data=request.data,
-                                            partial=True)
+    serializer = UserSerializer(obj,
+                                data=request.data,
+                                partial=True)
     if serializer.is_valid(raise_exception=True):
         if 'role' in serializer.validated_data:
             serializer.validated_data.pop('role')
@@ -110,16 +107,28 @@ def get_current_user(request):
 class TitleViewSet(viewsets.ModelViewSet):
     queryset = Title.objects.all()
     serializer_class = TitleSerializer
+    permission_classes = (IsAdmin,)
+
+    def get_serializer_class(self):
+        if self.action in ("retrieve", "list"):
+            return ReadOnlyTitleSerializer
+        return TitleSerializer
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
+    permission_classes = (IsAdmin,)
+    search_fields = ("name",)
+    lookup_field = "slug"
 
 
 class GenreViewSet(viewsets.ModelViewSet):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
+    permission_classes = (IsAdmin,)
+    search_fields = ("name",)
+    lookup_field = "slug"
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
@@ -166,4 +175,3 @@ class CommentViewSet(viewsets.ModelViewSet):
             author=self.request.user,
             review=review
         )
-

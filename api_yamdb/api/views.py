@@ -21,6 +21,7 @@ from .serializers import (
     JwtTokenSerializer, UserSerializer, ReadOnlyTitleSerializer
 )
 from users.models import User
+from http import HTTPStatus
 # User = get_user_model()
 EMAIL = 'admin@mail.com'
 
@@ -38,12 +39,12 @@ def get_confirmation_code(request):
                   EMAIL,
                   [request.data.get('email')],
                   fail_silently=False)
-        return Response(request.data, status=status.HTTP_200_OK)
+        return Response(request.data, status=HTTPStatus.OK)
     serializer = ConfirmationCodeSerializer(data=request.data)
     if serializer.is_valid(raise_exception=True):
         if serializer.validated_data['username'] == 'me':
             return Response(serializer.errors,
-                            status=status.HTTP_400_BAD_REQUEST)
+                            status=HTTPStatus.BAD_REQUEST)
         serializer.save()
         user = get_object_or_404(User,
                                  username=serializer.data.get('username'))
@@ -54,25 +55,25 @@ def get_confirmation_code(request):
                   [serializer.data.get('email')],
                   fail_silently=False)
         return Response(serializer.data)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    return Response(serializer.errors, status=HTTPStatus.BAD_REQUEST)
 
 
 @api_view(['POST'])
 @permission_classes((permissions.AllowAny,))
 def get_jwt_token(request):
     serializer = JwtTokenSerializer(data=request.data)
-    if serializer.is_valid(raise_exception=True):
-        user = get_object_or_404(User,
-                                 username=request.data.get('username'))
-        confirmation_code = request.data.get('confirmation_code')
-        if default_token_generator.check_token(user, confirmation_code):
-            refresh = RefreshToken.for_user(user)
-            context = {
-                'refresh': str(refresh),
-                'access': str(refresh.access_token),
-            }
-            return Response(context)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    serializer.is_valid(raise_exception=True)
+    user = get_object_or_404(User,
+                             username=request.data.get('username'))
+    confirmation_code = request.data.get('confirmation_code')
+    if default_token_generator.check_token(user, confirmation_code):
+        refresh = RefreshToken.for_user(user)
+        context = {
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+        }
+        return Response(context, status=HTTPStatus.OK)
+    return Response(serializer.errors, status=HTTPStatus.BAD_REQUEST)
 
 
 @api_view(['GET', 'PATCH'])
@@ -80,7 +81,7 @@ def get_jwt_token(request):
 def get_current_user(request):
     if request.method == 'GET':
         serializer = UserSerializer(request.user)
-        return Response(serializer.data)
+        return Response(serializer.data, status=HTTPStatus.OK)
     obj = User.objects.get(id=request.user.id)
     serializer = UserSerializer(obj,
                                 data=request.data,
@@ -122,6 +123,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     permission_classes = (IsAdmin,)
+    filter_backends = (filters.SearchFilter,)
     search_fields = ("name",)
     lookup_field = "slug"
 
@@ -130,6 +132,7 @@ class GenreViewSet(viewsets.ModelViewSet):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
     permission_classes = (IsAdmin,)
+    filter_backends = (filters.SearchFilter,)
     search_fields = ("name",)
     lookup_field = "slug"
 

@@ -4,6 +4,7 @@ from django.db import models
 from users.models import User
 from .validators import validate_year
 
+
 class Category(models.Model):
     name = models.CharField(max_length=256)
     slug = models.SlugField(
@@ -13,6 +14,9 @@ class Category(models.Model):
 
     def __str__(self):
         return self.name
+
+    class Meta:
+        ordering = ['name']
 
 
 class Genre(models.Model):
@@ -24,6 +28,9 @@ class Genre(models.Model):
 
     def __str__(self):
         return self.name
+
+    class Meta:
+        ordering = ['name']
 
 
 class Title(models.Model):
@@ -49,6 +56,9 @@ class Title(models.Model):
 
     def __str__(self):
         return self.name
+
+    class Meta:
+        ordering = ['name']
 
 
 class Review(models.Model):

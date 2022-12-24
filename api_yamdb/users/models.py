@@ -18,7 +18,7 @@ class User(AbstractUser):
         validators=[RegexValidator(
             regex=r'^[\w.@+-]+$',
             message='Недопустимое имя пользователя'
-            )]
+        )]
     )
     email = models.EmailField(
         'Email',

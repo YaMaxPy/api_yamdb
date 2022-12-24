@@ -72,3 +72,4 @@ class CommentViewSet(viewsets.ModelViewSet):
             author=self.request.user,
             review=review
         )
+

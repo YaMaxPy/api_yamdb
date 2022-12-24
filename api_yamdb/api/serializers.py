@@ -18,11 +18,13 @@ class TitleSerializer(serializers.ModelSerializer):
 
 
 class CategorySerializer(serializers.ModelSerializer):
+
     class Meta:
         model = Category
 
 
 class GenreSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = Genre
 
@@ -64,3 +66,4 @@ class CommentSerializer(serializers.ModelSerializer):
     class Meta:
         fields = '__all__'
         model = Comment
+

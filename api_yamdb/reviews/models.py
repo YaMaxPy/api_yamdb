@@ -2,7 +2,7 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
 from users.models import User
-
+from .validators import validate_year
 
 class Category(models.Model):
     name = models.CharField(max_length=256)
@@ -40,6 +40,7 @@ class Title(models.Model):
         default=None
     )
     year = models.IntegerField(
+        validators=[validate_year]
     )
     description = models.TextField(
         null=True,
@@ -106,4 +107,3 @@ class Comment(models.Model):
 
     def __str__(self):
         return self.text[:15]
-

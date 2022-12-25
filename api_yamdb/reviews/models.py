@@ -48,6 +48,16 @@ class Title(models.Model):
         ordering = ['name']
 
 
+class GenreTitle(models.Model):
+    title = models.ForeignKey(Title,
+                              on_delete=models.CASCADE)
+    genre = models.ForeignKey(Genre,
+                              on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f'{self.title}, жанр - {self.genre}'
+
+
 class Review(models.Model):
     title = models.ForeignKey(Title,
                               on_delete=models.CASCADE,

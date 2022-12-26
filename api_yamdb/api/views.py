@@ -5,14 +5,15 @@ from django.core.mail import send_mail
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import filters, mixins, permissions, viewsets
+from rest_framework import filters, mixins, viewsets
 from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import (AllowAny, IsAuthenticated,
+                                        IsAuthenticatedOrReadOnly)
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from reviews.models import Category, Genre, Review, Title
 from users.models import User
-
 from .filters import TitlesFilter
 from .pagination import UsersPagination
 from .permissions import (IsAdmin, IsAdminModeratorAuthorOrReadOnly,
@@ -26,7 +27,7 @@ EMAIL = 'admin@mail.com'
 
 
 @api_view(['POST'])
-@permission_classes((permissions.AllowAny,))
+@permission_classes((AllowAny,))
 def get_confirmation_code(request):
     if User.objects.filter(username=request.data.get('username'),
                            email=request.data.get('email')).exists():
@@ -58,7 +59,7 @@ def get_confirmation_code(request):
 
 
 @api_view(['POST'])
-@permission_classes((permissions.AllowAny,))
+@permission_classes((AllowAny,))
 def get_jwt_token(request):
     serializer = JwtTokenSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
@@ -76,7 +77,7 @@ def get_jwt_token(request):
 
 
 @api_view(['GET', 'PATCH'])
-@permission_classes((permissions.IsAuthenticated,))
+@permission_classes((IsAuthenticated,))
 def get_current_user(request):
     if request.method == 'GET':
         serializer = UserSerializer(request.user)
@@ -107,8 +108,7 @@ class UsersViewSet(viewsets.ModelViewSet):
 
 class TitleViewSet(viewsets.ModelViewSet):
     queryset = Title.objects.all().annotate(
-        Avg('reviews__score')
-    ).order_by('name')
+        Avg('reviews__score')).order_by('name')
     serializer_class = TitleSerializer
     permission_classes = (IsAdminUserOrReadOnly,)
     filter_backends = [DjangoFilterBackend]
@@ -146,7 +146,7 @@ class GenreViewSet(mixins.ListModelMixin,
 
 class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
-    permission_classes = (permissions.IsAuthenticatedOrReadOnly,
+    permission_classes = (IsAuthenticatedOrReadOnly,
                           IsAdminModeratorAuthorOrReadOnly)
 
     def get_queryset(self):
@@ -162,7 +162,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
-    permission_classes = (permissions.IsAuthenticatedOrReadOnly,
+    permission_classes = (IsAuthenticatedOrReadOnly,
                           IsAdminModeratorAuthorOrReadOnly)
 
     def get_queryset(self):

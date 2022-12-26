@@ -1,12 +1,3 @@
-# Для загрузки данных, получаемых вместе с проектом, хорошей 
-# практикой будет написать собственную management-команду, 
-# добавляющую данные в БД через Django ORM.
-# Priject api_yamdb
-# data:
-# 	python api_yamdb/manage.py import_data --paths static/data/users.csv static/data/category.csv static/data/genre.csv static/data/titles.csv  --models User Category Genre Title
-# 	python api_yamdb/manage.py import_data --paths static/data/review.csv static/data/comments.csv  --models Review Comment
-# 	python api_yamdb/manage.py import_data --paths static/data/genre_title.csv --tables reviews_title_genre
-
 import csv
 import os
 
@@ -81,7 +72,7 @@ class Command(BaseCommand):
         tables = options.get("tables")
 
         if not models and not tables or models and tables:
-            raise CommandError('Не корректное указание параметров')
+            raise CommandError('Некорректное указание параметров')
 
         if models and paths:
             if len(models) != len(paths):

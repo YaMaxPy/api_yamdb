@@ -45,12 +45,12 @@ class User(AbstractUser):
 
     @property
     def is_user(self):
-        return bool(self.role == 'user')
+        return self.role == 'user'
 
     @property
     def is_admin(self):
-        return bool(self.role == 'admin')
+        return self.role == 'admin'
 
     @property
     def is_moderator(self):
-        return bool(self.role == 'moderator')
+        return self.role == 'moderator'

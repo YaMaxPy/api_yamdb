@@ -78,6 +78,10 @@ class ReviewSerializer(serializers.ModelSerializer):
                                           slug_field='username')
     title = serializers.PrimaryKeyRelatedField(read_only=True)
 
+    class Meta:
+        model = Review
+        fields = ('id', 'title', 'text', 'author', 'score', 'pub_date')
+
     def validate(self, value):
         author = self.context['request'].user
         title_id = (self.context['request'].
@@ -89,10 +93,6 @@ class ReviewSerializer(serializers.ModelSerializer):
                 f'Отзыв на произведение {title.name} уже существует'
             )
         return value
-
-    class Meta:
-        model = Review
-        fields = ('id', 'title', 'text', 'author', 'score', 'pub_date')
 
 
 class CommentSerializer(serializers.ModelSerializer):
